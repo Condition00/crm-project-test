@@ -18,9 +18,21 @@ export async function proxy(request: NextRequest) {
     body,
   });
 
+  const responseHeaders = new Headers(response.headers);
+  responseHeaders.delete("content-length");
+  responseHeaders.delete("content-encoding");
+  responseHeaders.delete("transfer-encoding");
+  responseHeaders.delete("connection");
+  responseHeaders.delete("keep-alive");
+  responseHeaders.delete("proxy-authenticate");
+  responseHeaders.delete("proxy-authorization");
+  responseHeaders.delete("te");
+  responseHeaders.delete("trailer");
+  responseHeaders.delete("upgrade");
+
   return new Response(response.body, {
     status: response.status,
-    headers: response.headers,
+    headers: responseHeaders,
   });
 }
 
