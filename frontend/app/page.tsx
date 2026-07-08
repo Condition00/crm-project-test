@@ -1,14 +1,58 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent } from "react";
+import { useRouter } from "next/navigation";
 
 type ParsedRow = string[];
 
-const SAMPLE_CSV = `name,email,phone
-Aarav Shah,aarav@example.com,+91-9876543210
-Mira Patel,mira@example.com,+1-415-555-0199`;
+export type BackendLeadRecord = {
+  created_at: string;
+  name: string;
+  email: string;
+  country_code: string;
+  mobile_without_country_code: string;
+  company: string;
+  city: string;
+  state: string;
+  country: string;
+  lead_owner: string;
+  crm_status: string;
+  crm_note: string;
+  data_source: string;
+  possession_time: string;
+  description: string;
+};
+
+export type BackendImportResponse = {
+  success: boolean;
+  file_name: string;
+  source_format: string;
+  total_rows: number;
+  valid_rows: number;
+  imported_rows: number;
+  skipped_rows: number;
+  records: BackendLeadRecord[];
+  skipped_records: Array<{
+    row_index: number;
+    reason: string;
+  }>;
+  provider: string;
+  model: string;
+};
+
+const SAMPLE_CSV = `# Sample CRM Records
+created_at,name,email,country_code,mobile_without_country_code,company,city,state,country,lead_owner,crm_status,crm_note,data_source,possession_time,description
+
+2026-05-13 14:20:48,John Doe,john.doe@example.com,+91,9876543210,GrowEasy,Mumbai,Maharashtra,India,test@gmail.com,GOOD_LEAD_FOLLOW_UP,Client is asking to reschedule demo,,,
+
+2026-05-13 14:25:30,Sarah Johnson,sarah.johnson@example.com,+91,9876543211,Tech Solutions,Bangalore,Karnataka,India,test@gmail.com,DID_NOT_CONNECT,"Person was busy, will try again next week",,,
+
+2026-05-13 14:30:15,Rajesh Patel,rajesh.patel@example.com,+91,9876543212,Startup Inc,Delhi,Delhi,India,test@gmail.com,BAD_LEAD,Not interested in our services,,,
+
+2026-05-13 14:35:22,Priya Singh,priya.singh@example.com,+91,9876543213,Enterprise Corp,Pune,Maharashtra,India,test@gmail.com,SALE_DONE,"Deal closed, onboarding in progress",,,`;
 
 export default function Home() {
+  const router = useRouter();
   const [dragActive, setDragActive] = useState(false);
   const [fileName, setFileName] = useState("");
   const [headers, setHeaders] = useState<string[]>([]);
@@ -16,6 +60,7 @@ export default function Home() {
   const [status, setStatus] = useState("Drop a CSV to preview it.");
   const [error, setError] = useState("");
   const [sampleUrl, setSampleUrl] = useState("");
+  const [isConfirming, setIsConfirming] = useState(false);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -62,9 +107,10 @@ export default function Home() {
 
   async function handleConfirmImport() {
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3080";
+      setIsConfirming(true);
+      setError("");
 
-      await fetch(`${backendUrl.replace(/\/$/, "")}/import-leads`, {
+      const response = await fetch("/api/import-leads", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -75,8 +121,19 @@ export default function Home() {
           rows,
         }),
       });
+
+      if (!response.ok) {
+        throw new Error(`Import failed with status ${response.status}`);
+      }
+
+      const result = (await response.json()) as BackendImportResponse;
+      setStatus(`Imported ${result.imported_rows.toLocaleString()} records.`);
+      window.sessionStorage.setItem("importResult", JSON.stringify(result));
+      router.push("/generated-leads");
     } catch {
-      // Intentionally no-op until the backend route is implemented.
+      setStatus("Import request failed.");
+    } finally {
+      setIsConfirming(false);
     }
   }
 
@@ -115,7 +172,7 @@ export default function Home() {
               setDragActive(false);
             }}
             onDrop={handleDrop}
-            className={`mx-auto flex min-h-[340px] w-full cursor-pointer items-center justify-center rounded-[28px] border border-dashed px-6 py-10 text-center transition-colors shadow-[0_1px_0_rgba(255,255,255,0.06),0_20px_60px_rgba(0,0,0,0.28)] ${dragActive ? "border-emerald-300/70 bg-emerald-400/10" : "border-white/15 bg-white/[0.03]"}`}
+            className={`mx-auto flex min-h-[340px] w-2xl cursor-pointer items-center justify-center rounded-[28px] border border-dashed px-6 py-10 text-center transition-colors shadow-[0_1px_0_rgba(255,255,255,0.06),0_20px_60px_rgba(0,0,0,0.28)] ${dragActive ? "border-emerald-300/70 bg-emerald-400/10" : "border-white/15 bg-white/[0.03]"}`}
             onClick={() => inputRef.current?.click()}
           >
             <div className="space-y-4">
@@ -198,14 +255,16 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={handleConfirmImport}
-                  className="inline-flex h-11 items-center justify-center cursor-pointer rounded-xl border border-emerald-300/30 bg-emerald-400/10 px-4 text-sm font-medium text-emerald-100 transition-colors hover:bg-emerald-400/15"
+                  disabled={isConfirming}
+                  className="inline-flex h-11 items-center justify-center cursor-pointer rounded-xl border border-emerald-300/30 bg-emerald-400/10 px-4 text-sm font-medium text-emerald-100 transition-colors hover:bg-emerald-400/15 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  Confirm
+                  {isConfirming ? "Confirming..." : "Confirm"}
                 </button>
               </div>
             </section>
-            
+
           ) : null}
+
         </div>
       </div>
     </main>
@@ -215,6 +274,7 @@ export default function Home() {
 //parseCsv function adapted from https://stackoverflow.com/a/8497474/10629172 // best 
 
 function parseCsv(input: string) {
+  const normalizedInput = stripLeadingCommentLines(input);
   const rows: string[][] = [];
   let currentRow: string[] = [];
   let currentCell = "";
@@ -232,8 +292,8 @@ function parseCsv(input: string) {
     currentRow = [];
   };
 
-  for (let index = 0; index < input.length; index += 1) {
-    const character = input[index];
+  for (let index = 0; index < normalizedInput.length; index += 1) {
+    const character = normalizedInput[index];
 
     if (character === "\r") {
       continue;
@@ -284,4 +344,14 @@ function parseCsv(input: string) {
     headers: headerRow.map((header, index) => header || `column_${index + 1}`),
     rows: dataRows,
   };
+}
+
+function stripLeadingCommentLines(text: string) {
+  const lines = text.split(/\r?\n/);
+  const firstContentIndex = lines.findIndex((line) => {
+    const trimmed = line.trim();
+    return trimmed.length > 0 && !trimmed.startsWith("#");
+  });
+
+  return firstContentIndex === -1 ? text : lines.slice(firstContentIndex).join("\n");
 }

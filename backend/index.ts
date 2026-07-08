@@ -1,21 +1,6 @@
-import express, { type Request, type Response } from "express";
+import app from "./src/app";
 
-type ImportLeadRow = Array<string | number | null | undefined>;
-
-type ImportLeadsRequestBody = {
-  fileName?: string;
-  headers?: unknown[];
-  rows?: unknown[];
-};
-
-const app = express();
-const port = 3080;
-
-app.use(express.json({ limit: "10mb" }));
-
-app.get("/", (req: Request, res: Response) => {
-  res.json({ message: "Hello from Bun and TypeScript!" });
-});
+const port = Number(process.env.PORT ?? 3080);
 
 app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);
