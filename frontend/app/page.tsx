@@ -182,6 +182,8 @@ export default function Home() {
   );
 }
 
+//parseCsv function adapted from https://stackoverflow.com/a/8497474/10629172 // best 
+
 function parseCsv(input: string) {
   const rows: string[][] = [];
   let currentRow: string[] = [];
