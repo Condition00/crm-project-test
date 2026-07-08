@@ -60,6 +60,26 @@ export default function Home() {
     }
   }
 
+  async function handleConfirmImport() {
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3080";
+
+      await fetch(`${backendUrl.replace(/\/$/, "")}/import-leads`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          fileName,
+          headers,
+          rows,
+        }),
+      });
+    } catch {
+      // Intentionally no-op until the backend route is implemented.
+    }
+  }
+
   function handleInputChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (file) {
@@ -95,7 +115,7 @@ export default function Home() {
               setDragActive(false);
             }}
             onDrop={handleDrop}
-            className={`mx-auto flex min-h-[340px] w-full max-w-2xl cursor-pointer items-center justify-center rounded-[28px] border border-dashed border-zinc-700 px-6 py-10 text-center transition-colors shadow-[0_1px_0_rgba(255,255,255,0.06),0_20px_60px_rgba(0,0,0,0.28)] ${dragActive ? "border-emerald-300/70 bg-emerald-400/10" : "border-white/15 bg-white/[0.03]"}`}
+            className={`mx-auto flex min-h-[340px] w-full cursor-pointer items-center justify-center rounded-[28px] border border-dashed px-6 py-10 text-center transition-colors shadow-[0_1px_0_rgba(255,255,255,0.06),0_20px_60px_rgba(0,0,0,0.28)] ${dragActive ? "border-emerald-300/70 bg-emerald-400/10" : "border-white/15 bg-white/[0.03]"}`}
             onClick={() => inputRef.current?.click()}
           >
             <div className="space-y-4">
@@ -129,7 +149,7 @@ export default function Home() {
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
                   <h2 className="text-lg font-semibold text-white">Preview</h2>
-                  <p className="text-sm text-zinc-400">Parsed rows only. No backend call happens here.</p>
+                  <p className="text-sm text-zinc-400">Parsed column names, layouts, and structures</p>
                 </div>
                 <button
                   type="button"
@@ -143,7 +163,7 @@ export default function Home() {
                       inputRef.current.value = "";
                     }
                   }}
-                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-zinc-100 transition-colors hover:bg-white/10"
+                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-zinc-100 transition-colors hover:bg-white/10 cursor-pointer"
                 >
                   Clear
                 </button>
@@ -174,7 +194,17 @@ export default function Home() {
                   </tbody>
                 </table>
               </div>
+              <div className="mt-4 flex justify-end">
+                <button
+                  type="button"
+                  onClick={handleConfirmImport}
+                  className="inline-flex h-11 items-center justify-center cursor-pointer rounded-xl border border-emerald-300/30 bg-emerald-400/10 px-4 text-sm font-medium text-emerald-100 transition-colors hover:bg-emerald-400/15"
+                >
+                  Confirm
+                </button>
+              </div>
             </section>
+            
           ) : null}
         </div>
       </div>
