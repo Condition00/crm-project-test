@@ -1,5 +1,8 @@
 # CRM Project
 
+### Demo Video
+https://github.com/user-attachments/assets/dee3fbdf-8ca8-412f-8d43-5eb443e8e0a5
+
 This project is a CSV-to-CRM lead ingestion flow built. It lets a user upload a CSV, preview the rows in the browser, confirm the import, send the data through a Next.js proxy to the backend, and view the generated CRM leads on a separate results page.
 The goal is to turn raw lead data into a structured, readable CRM-style output without requiring a database. The backend normalizes the incoming CSV/table payload, extracts or infers CRM fields, and returns JSON that the frontend renders as a lead table.
 
@@ -132,7 +135,14 @@ The following checks have been run during development:
 - Add richer validation and mapping rules for messy CSV files.
 
 ## Demo Assets
+### Drag CSV Files for parser to act upon:
+<img width="1611" height="914" alt="image" src="https://github.com/user-attachments/assets/87a9b790-bced-4654-888a-06cb735aaf56" />
 
+### Preview of the uploaded csv:
+<img width="1736" height="963" alt="image" src="https://github.com/user-attachments/assets/dcba4dba-415d-412e-b1cc-9d3b1b0b6317" />
+
+### Generated leads from the csv:
+<img width="1736" height="963" alt="image" src="https://github.com/user-attachments/assets/7c351a62-3f6d-4bff-bddc-1ddcc434f9c3" />
 
 ## Limitations
 
